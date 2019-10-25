@@ -5,7 +5,9 @@
 - [x] Check out the libs that will be needed
 - [x] Finish to read the article
 - [x] Review old Fuzzy materials
-- [ ] Fix rule definition problem
+- [x] Fix rule definition problem
+- [x] Set random amount of values for inputs
+- [x] Finish posting the rep into GitHub
 
 ## OVERVIEW
 

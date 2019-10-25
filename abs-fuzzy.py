@@ -4,23 +4,15 @@ ABS FUZZYLOGIC SYSTEM
 github: https://github.com/regisfaria
 '''
 
-'''
-NOTES
-
- In this code I'm taking consideration three parameters
- 1. Obstacle 
- 2. Brakeforce  
- 3. Slip
-'''
 import numpy as np
 import skfuzzy as fuzz
+import random
+import time
 from skfuzzy import control as ctrl
 
 # Antecedents
-obstacle = ctrl.Antecedent(np.arange(0, 101, 1), 'obstacle')
-#np.arange(-36, 137, 1)
-brake_force = ctrl.Antecedent(np.arange(0, 101, 1), 'brake_force')
-#np.arange(-36, 128, 1)
+obstacle = ctrl.Antecedent(np.arange(-36, 137, 1), 'obstacle')
+brake_force = ctrl.Antecedent(np.arange(-36, 128, 1), 'brake_force')
 slip = ctrl.Antecedent(np.arange(0, 101, 1), 'slip')
 
 # Auto-membership functions
@@ -35,48 +27,56 @@ slip.automf(names=slip_level)
 
 # Consequent
 abs_brake = ctrl.Consequent(np.arange(0, 101, 1), 'abs_brake')
-abs_brake['minimum'] = fuzz.trimf(abs_brake.universe, [0, 16.7, 33.4])
-abs_brake['medium'] = fuzz.trimf(abs_brake.universe, [33.4, 49.5, 66.7])
-abs_brake['maximum'] = fuzz.trimf(abs_brake.universe, [66.7, 83, 100])#101 maybe
+abs_brake['no brake'] = fuzz.trimf(abs_brake.universe, [0, 16.7, 33.4])
+abs_brake['medium brake'] = fuzz.trimf(abs_brake.universe, [33.5, 49.5, 66.7])
+abs_brake['high brake'] = fuzz.trimf(abs_brake.universe, [66.8, 83, 100])
 
 # Ploting obstacle
 obstacle.view()
+time.sleep(3)
 
 # Ploting brake force
 brake_force.view()
+time.sleep(3)
 
 # Ploting slip
 slip.view()
+time.sleep(3)
 
 # Now it's time to define the rules of this system
 # I'm going to create a rules array, so all the rules will be stored here
 rules = []
 
-rule1 = ctrl.Rule(obstacle['very near'] & brake_force['high'] & slip['unsafe'], abs_brake['minimum'])
+# Rules for no brake
+rule1 = ctrl.Rule(obstacle['very near'] & brake_force['high'] & slip['unsafe'], abs_brake['no brake'])
 rules.append(rule1)
-rule2 = ctrl.Rule(obstacle['very near'] & brake_force['high'] & slip['critical'], abs_brake['medium'])
+rule2 = ctrl.Rule(obstacle['near'] & brake_force['high'] & slip['unsafe'], abs_brake['no brake'])
 rules.append(rule2)
-rule3 = ctrl.Rule(obstacle['very near'] & brake_force['high'] & slip['safe'], abs_brake['maximum'])
+rule3 = ctrl.Rule(obstacle['no obstacle'] & brake_force['high'] & slip['unsafe'], abs_brake['no brake'])
 rules.append(rule3)
-rule4 = ctrl.Rule(obstacle['near'] & brake_force['high'] & slip['unsafe'], abs_brake['minimum'])
+rule4 = ctrl.Rule(obstacle['no obstacle'] & brake_force['low'] & slip['unsafe'], abs_brake['no brake'])
 rules.append(rule4)
-rule5 = ctrl.Rule(obstacle['near'] & brake_force['high'] & slip['critical'], abs_brake['medium'])
+
+# Rules for medium brake
+rule5 = ctrl.Rule(obstacle['very near'] & brake_force['high'] & slip['critical'], abs_brake['medium brake'])
 rules.append(rule5)
-rule6 = ctrl.Rule(obstacle['near'] & brake_force['high'] & slip['safe'], abs_brake['maximum'])
+rule6 = ctrl.Rule(obstacle['near'] & brake_force['high'] & slip['critical'], abs_brake['medium brake'])
 rules.append(rule6)
-rule7 = ctrl.Rule(obstacle['near'] & brake_force['low'] & slip['safe'], abs_brake['maximum'])
+rule7 = ctrl.Rule(obstacle['near'] & brake_force['low'] & slip['critical'], abs_brake['medium brake'])
 rules.append(rule7)
-rule8 = ctrl.Rule(obstacle['near'] & brake_force['low'] & slip['critical'], abs_brake['medium'])
+rule8 = ctrl.Rule(obstacle['no obstacle'] & brake_force['high'] & slip['critical'], abs_brake['medium brake'])
 rules.append(rule8)
-rule9 = ctrl.Rule(obstacle['no obstacle'] & brake_force['low'] & slip['safe'], abs_brake['maximum'])
+rule9 = ctrl.Rule(obstacle['no obstacle'] & brake_force['low'] & slip['critical'], abs_brake['medium brake'])
 rules.append(rule9)
-rule10 = ctrl.Rule(obstacle['no obstacle'] & brake_force['high'] & slip['critical'], abs_brake['medium'])
+
+# Rules for high brake
+rule10 = ctrl.Rule(obstacle['very near'] & brake_force['high'] & slip['safe'], abs_brake['high brake'])
 rules.append(rule10)
-rule11 = ctrl.Rule(obstacle['no obstacle'] & brake_force['high'] & slip['unsafe'], abs_brake['minimum'])
+rule11 = ctrl.Rule(obstacle['near'] & brake_force['high'] & slip['safe'], abs_brake['high brake'])
 rules.append(rule11)
-rule12 = ctrl.Rule(obstacle['no obstacle'] & brake_force['low'] & slip['unsafe'], abs_brake['minimum'])
+rule12 = ctrl.Rule(obstacle['near'] & brake_force['low'] & slip['safe'], abs_brake['high brake'])
 rules.append(rule12)
-rule13 = ctrl.Rule(obstacle['no obstacle'] & brake_force['low'] & slip['critical'], abs_brake['medium'])
+rule13 = ctrl.Rule(obstacle['no obstacle'] & brake_force['low'] & slip['safe'], abs_brake['high brake'])
 rules.append(rule13)
 
 # Now I'll create the rule system
@@ -87,13 +87,29 @@ abs_brake_intensity = ctrl.ControlSystemSimulation(abs_brake_ctrl)
 
 # Here I'll pick up the inputs from the user
 print('We will test the intensity of the ABS brake of a car based on 3 variables\n\n')
-obstacle_user =  float(input('In a scale of 0 to 100, how close is the obstacle?\n'))
-brake_force_user = float(input('How abrupt you press the brake in a scale of 0 to 100?\n'))
+obstacle_user =  str(raw_input('In a scale of 0 to 100, how close is the obstacle?(press "r" for random)\n'))
+if obstacle_user == 'r':
+    obstacle_user = float(random.triangular(-36, 137))
+    print('The random value is:', obstacle_user)
+else:
+    obstacle_user = float(obstacle_user) + float(random.triangular(-36, 37))
+
+brake_force_user = str(raw_input("How long you've been pressing the brake in a scale of 0 to 100?(press 'r' for random)\n"))
+if brake_force_user == 'r':
+    brake_force_user = float(random.triangular(-36, 128))
+    print('The random value is:', brake_force_user)
+else:
+    brake_force_user = float(brake_force_user) + float(random.triangular(-36, 28))
 
 # Calculating slip
-car_speed = float(input('How fast is the car going?\n'))
-wheel_speed = float(input('How fast is the wheel?\n'))
-slip_user = 100*((car_speed-wheel_speed)/car_speed)
+slip_user = raw_input('Now we will need to calculate the slip rate, press "r" for a random value or "enter" otherwise')
+if slip_user == 'r':
+    slip_user = float(random.triangular(0, 100))
+    print('The random value is:', slip_user)
+else:
+    car_speed = float(raw_input('How fast is the car going?\n'))
+    wheel_speed = float(raw_input('How fast is the wheel?\n'))
+    slip_user = 100*((car_speed-wheel_speed)/car_speed)
 
 # Here we will use the user inputs to calculate the abs intensity
 abs_brake_intensity.input['obstacle'] = obstacle_user
